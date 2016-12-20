@@ -53,6 +53,6 @@ class big_int {
     return copy;
   }
 
-  //define other operators here
+  //define other operators here: +, -, *, /, |, &, ||, &&, ==, =
   
 };

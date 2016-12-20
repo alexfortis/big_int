@@ -1,0 +1,6 @@
+#include <iostream>
+#include <climits>
+
+template<int N>
+class big_int {
+};

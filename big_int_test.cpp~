@@ -1,6 +1,0 @@
-#include "big_int.cpp"
-
-int main() {
-  big_int<8> char1;
-  big_int<9> char2;
-}

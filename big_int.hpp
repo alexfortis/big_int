@@ -14,21 +14,31 @@ namespace alexstrong {
     static constexpr bool less = A<B;
     static constexpr bool greater = A>B;
     static constexpr bool equal = A==B;
-    static constexpr bool min = less ? A : B;
-    static constexpr bool max = greater ? A : B;
+    static constexpr int min = less ? A : B;
+    static constexpr int max = greater ? A : B;
   };
 
   template<int N>
   class big_int {
     static_assert(N % CHAR_BIT == 0, "Invalid number of bits; " STRINGIFY(N) " is not a multiple of " STRINGIFY(CHAR_BIT));
-    char bitmap[N/CHAR_BIT];
   public:
+    //store the data
+    char bitmap[N/CHAR_BIT];
 
-    //static big_int<N> ONE("1");
-    static big_int<N> ZERO;
+    //tells you if there's overflow
+    template<int M>
+    struct overflow_exception : public std::overflow_error {
+      big_int<N> first;
+      big_int<M> second;
+      overflow_exception(big_int<N> first, big_int<M> second) : std::overflow_error("There was overflow.") {
+	this->first = first;
+	this->second = second;
+      }
+      
+    };
     
     //default constructor - sets everything to 0
-    big_int() {
+    big_int() noexcept {
       for(int i = 0; i < N/CHAR_BIT; i++) {
 	bitmap[i] = 0;
       }
@@ -40,14 +50,14 @@ namespace alexstrong {
     }
 
     //copy constructor
-    big_int(const big_int<N> &other) {
+    big_int(const big_int<N> &other) noexcept {
       for(int i = 0; i < N/CHAR_BIT; i++) {
 	bitmap[i] = other.bitmap[i];
       }
     }
 
     //move constructor
-    big_int(big_int<N> &&other) {
+    big_int(big_int<N> &&other) noexcept {
       for(int i = 0; i < N/CHAR_BIT; i++) {
 	bitmap[i] = other.bitmap[i];
 	other.bitmap[i] = 0;
@@ -60,18 +70,29 @@ namespace alexstrong {
     }
 
     //simple utility to get the number of bits
-    int num_bits() {
+    int num_bits() noexcept {
       return N;
     }
 
     //copy assignment
-    big_int<N> &operator=(const big_int<N> &other) {
-      big_int<N> copy(other);
-      return copy;
+    big_int<N> &operator=(const big_int<N> &other) noexcept {
+      for(int i = 0; i < N/CHAR_BIT; i++) {
+	bitmap[i] = other.bitmap[i];
+      }
+      return *this;
+    }
+
+    //beware of using this; could easily lose information!
+    template<int M>
+    big_int<IntUtils<M, N>::max> &operator=(const big_int<M> &other) noexcept {
+      for(int i = 0; i < IntUtils<M, N>::min; i++) {
+	bitmap[i] = other.bitmap[i];
+      }
+      return *this;
     }
 
     //move assignment
-    big_int<N> &operator=(const big_int<N> &&other) {
+    big_int<N> &operator=(const big_int<N> &&other) noexcept {
       big_int<N> copy(other);
       return copy;
     }
@@ -79,7 +100,7 @@ namespace alexstrong {
     //define other operators here: +, -, *, /, |, &, ||, &&, ==, =, etc
 
     //bitwise not
-    big_int<N> operator~() {
+    big_int<N> operator~() noexcept {
       big_int<N> ret(*this);
       for(int i = 0; i < N/CHAR_BIT; i++) {
 	ret.bitmap[i] = ~(ret.bitmap[i]);
@@ -95,42 +116,35 @@ namespace alexstrong {
     }
 
     //addition of two big_ints, not necessarily of the same size
-    template<int A, int B>
-    friend big_int<IntUtils<A, B>::max> operator+(const big_int<A> &first, const big_int<B> &second) {
-      big_int<IntUtils<A, B>::max> ret;
-      if(A>B) {
-	ret = first;
-	char carry = 0;
-	for(int i = 0; i < B/CHAR_BIT; i++) {
-	  char sum = ret.bitmap[i] + second.bitmap[i] + carry;
-	  carry = (sum < ret.bitmap[i]) || (sum < second.bitmap[i]);
-	  ret.bitmap[i] = sum;
-	}
-	for(int i = B/CHAR_BIT; carry && (i < A/CHAR_BIT); i++) {
-	  ret.bitmap[i]++;
-	  carry = !(ret.bitmap[i]);
-	}
+    template<int M>
+    big_int<IntUtils<M, N>::max> operator+(const big_int<M> &other) {
+      big_int<IntUtils<M, N>::max> ret;
+      big_int<IntUtils<M, N>::min> *smaller;
+      if(M >= N) {
+	ret = *this;
+	smaller = (big_int<IntUtils<M, N>::min> *)(&other);
       }
       else {
-	ret = second;
-	char carry = 0;
-	for(int i = 0; i < A/CHAR_BIT; i++) {
-	  char sum = first.bitmap[i] + ret.bitmap[i] + carry;
-	  carry = (sum < first.bitmap[i]) || (sum < ret.bitmap[i]);
-	  ret.bitmap[i] = sum;
-	}
-	for(int i = A/CHAR_BIT; carry && (i < B/CHAR_BIT); i++) {
-	  ret.bitmap[i]++;
-	  carry = !(ret.bitmap[i]);
-	}
+	ret = other;
+	smaller = (big_int<IntUtils<M, N>::min> *)this;
+      }
+      char carry = 0;
+      for(int i = 0; i < IntUtils<M, N>::min/CHAR_BIT; i++) {
+	unsigned char sum = (unsigned char) ret.bitmap[i] + smaller->bitmap[i] + carry;
+	carry = (sum < ret.bitmap[i]) || (sum < smaller->bitmap[i]);
+	ret.bitmap[i] = sum;
+      }
+      int index = IntUtils<M, N>::min/CHAR_BIT;
+      while(carry && (index < IntUtils<M, N>::max/CHAR_BIT)) {
+	unsigned char sum = (unsigned char) ret.bitmap[index] + smaller->bitmap[index] + carry;
+	carry = (sum < ret.bitmap[index]) || (sum < smaller->bitmap[index]);
+	ret.bitmap[index] = sum;
+	index++;
+      }
+      if(carry) {
+	throw overflow_exception<M>(*this, other);
       }
       return ret;
-    }
-
-    //subtraction
-    template<int A, int B>
-    friend big_int<IntUtils<A,B>::max> operator-(const big_int<A> &first, const big_int<B> &second) {
-      return first + (-second);
     }
   };
 }

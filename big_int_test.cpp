@@ -10,5 +10,5 @@ int main() {
   //big_int<CHAR_BIT+1> char2;
   std::cout << sizeof(char1) << std::endl;
   std::cout << sizeof(short1) << std::endl;
-  std::cout << sizeof(sum) << std::endl;;
+  std::cout << sizeof(sum) << std::endl;
 }

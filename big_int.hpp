@@ -242,8 +242,62 @@ namespace alexstrong {
 
     template<int M>
     big_int<N> operator+=(const big_int<M> &other) {
+      //utilize the templated operator=
       *this = *this + other;
+      return *this;
     }
+
+    template<int M>
+    big_int<IntUtils<M, N>::sum_bits> operator-(const big_int<M> &other) {
+      return *this + (-other);
+    }
+
+    template<int M>
+    big_int<N> &operator-=(const big_int<M> &other) {
+      //utilize the templated operator=
+      *this = *this - other;
+      return *this;
+    }
+    
+    /*template<int M>
+    friend big_int<IntUtils<M, sizeof(int)*CHAR_BIT>::sum_bits> operator+(const big_int<M> &first, const int &second) {
+      big_int<sizeof(int)*CHAR_BIT> ret(second);
+      return first + ret;
+      }
+
+    template<int M>
+    friend big_int<IntUtils<M, sizeof(int)*CHAR_BIT>::sum_bits> operator+(const int &first, const big_int<M> &second) {
+      big_int<sizeof(int)*CHAR_BIT> ret(first);
+      return ret + second;
+      }*/
+
+    //get string representation in any base
+
+    //prefix operator++
+
+    //postfix operator++
+
+    //prefix operator--
+
+    //postfix operator--
+
+    //multiplication
+
+    //division
+
+    //bitwise and
+
+    //bitwise or
+
+    //bitwise xor
+
+    //logical shift right
+
+    //arithmetic shift right
+
+    //shift left
+
+    
     
   };
 }

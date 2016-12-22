@@ -1,0 +1,199 @@
+==9344== Memcheck, a memory error detector
+==9344== Copyright (C) 2002-2015, and GNU GPL'd, by Julian Seward et al.
+==9344== Using Valgrind-3.12.0 and LibVEX; rerun with -h for copyright info
+==9344== Command: ./big_int_test
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x403804: alexstrong::big_int<40>::big_int<32>(alexstrong::big_int<32> const&) (big_int.hpp:158)
+==9344==    by 0x403454: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:243)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x403810: alexstrong::big_int<40>::big_int<32>(alexstrong::big_int<32> const&) (big_int.hpp:158)
+==9344==    by 0x403454: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:243)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x4025D7: alexstrong::big_int<32>::sign() const (big_int.hpp:294)
+==9344==    by 0x40383C: alexstrong::big_int<40>::big_int<32>(alexstrong::big_int<32> const&) (big_int.hpp:167)
+==9344==    by 0x403454: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:243)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x40384B: alexstrong::big_int<40>::big_int<32>(alexstrong::big_int<32> const&) (big_int.hpp:167)
+==9344==    by 0x403454: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:243)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x403898: alexstrong::big_int<40> alexstrong::big_int<40>::operator+=<8>(alexstrong::big_int<8> const&) (big_int.hpp:253)
+==9344==    by 0x40346B: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:244)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x4038CD: alexstrong::big_int<40> alexstrong::big_int<40>::operator+=<8>(alexstrong::big_int<8> const&) (big_int.hpp:254)
+==9344==    by 0x40346B: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:244)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x40391B: alexstrong::big_int<40> alexstrong::big_int<40>::operator+=<8>(alexstrong::big_int<8> const&) (big_int.hpp:255)
+==9344==    by 0x40346B: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:244)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x403948: alexstrong::big_int<40> alexstrong::big_int<40>::operator+=<8>(alexstrong::big_int<8> const&) (big_int.hpp:258)
+==9344==    by 0x40346B: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:244)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x403964: alexstrong::big_int<40> alexstrong::big_int<40>::operator+=<8>(alexstrong::big_int<8> const&) (big_int.hpp:259)
+==9344==    by 0x40346B: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:244)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x403989: alexstrong::big_int<40> alexstrong::big_int<40>::operator+=<8>(alexstrong::big_int<8> const&) (big_int.hpp:260)
+==9344==    by 0x40346B: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:244)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344== 
+==9344== Use of uninitialised value of size 8
+==9344==    at 0x4039F6: alexstrong::big_int<40>::big_int(alexstrong::big_int<40> const&) (big_int.hpp:150)
+==9344==    by 0x4039BD: alexstrong::big_int<40> alexstrong::big_int<40>::operator+=<8>(alexstrong::big_int<8> const&) (big_int.hpp:265)
+==9344==    by 0x40346B: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator+<8>(alexstrong::big_int<8> const&) const (big_int.hpp:244)
+==9344==    by 0x402DD9: alexstrong::big_int<alexstrong::IntUtils<8, 32>::sum_bits> alexstrong::big_int<32>::operator-<8>(alexstrong::big_int<8> const&) const (big_int.hpp:281)
+==9344==    by 0xFFF00021F: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344== 
+==9344== Jump to the invalid address stated on the next line
+==9344==    at 0xFFF000220: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344==    by 0xFFF00016F: ???
+==9344==    by 0xFF000000056DDD8F: ???
+==9344==    by 0xFFFFFFFFFFFFFE: ???
+==9344==  Address 0xfff000220 is on thread 1's stack
+==9344== 
+==9344== 
+==9344== Process terminating with default action of signal 11 (SIGSEGV): dumping core
+==9344==  Bad permissions for mapped region at address 0xFFF000220
+==9344==    at 0xFFF000220: ???
+==9344==    by 0xFFF0001CF: ???
+==9344==    by 0xFFF0000DF: ???
+==9344==    by 0x4E6961C: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0x4E40327: ??? (in /usr/lib/libstdc++.so.6.0.22)
+==9344==    by 0xFFF000097: ???
+==9344==    by 0xFD40322C: ???
+==9344==    by 0x3F500C7: ???
+==9344==    by 0x56EB037: ??? (in /usr/lib/libc-2.24.so)
+==9344==    by 0xFFF00016F: ???
+==9344==    by 0xFF000000056DDD8F: ???
+==9344==    by 0xFFFFFFFFFFFFFE: ???
+==9344== 
+==9344== HEAP SUMMARY:
+==9344==     in use at exit: 0 bytes in 0 blocks
+==9344==   total heap usage: 2 allocs, 2 frees, 73,728 bytes allocated
+==9344== 
+==9344== All heap blocks were freed -- no leaks are possible
+==9344== 
+==9344== For counts of detected and suppressed errors, rerun with: -v
+==9344== Use --track-origins=yes to see where uninitialised values come from
+==9344== ERROR SUMMARY: 45 errors from 12 contexts (suppressed: 0 from 0)

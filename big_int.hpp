@@ -22,14 +22,15 @@ namespace alexstrong {
     static constexpr int sum_bits = max+CHAR_BIT;
   };
 
-  class int_t {};
+  class int_t {
+  protected:
+    static constexpr char uppercase_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static constexpr char lowercase_digits[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
+  };
 
   template<int N>
   class big_int : int_t {
     static_assert(N % CHAR_BIT == 0, "Invalid number of bits; " STRINGIFY(N) " is not a multiple of " STRINGIFY(CHAR_BIT));
-
-    static constexpr char uppercase_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    static constexpr char lowercase_digits[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
     
     int bits_needed(long long num) {
       int ret = 0;

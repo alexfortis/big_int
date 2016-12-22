@@ -1,5 +1,6 @@
 #include <iostream>
 #include <climits>
+#include <cassert>
 
 #ifndef BIG_INT_H
 #define BIG_INT_H
@@ -16,11 +17,19 @@ namespace alexstrong {
     static constexpr bool equal = A==B;
     static constexpr int min = less ? A : B;
     static constexpr int max = greater ? A : B;
+    static constexpr int prod_bits = A+B;
+    static constexpr int quot_bits = max-min;
+    static constexpr int sum_bits = max+CHAR_BIT;
   };
 
+  class int_t {};
+
   template<int N>
-  class big_int {
+  class big_int : int_t {
     static_assert(N % CHAR_BIT == 0, "Invalid number of bits; " STRINGIFY(N) " is not a multiple of " STRINGIFY(CHAR_BIT));
+
+    static constexpr char uppercase_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static constexpr char lowercase_digits[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
     
     int bits_needed(long long num) {
       int ret = 0;
@@ -34,38 +43,70 @@ namespace alexstrong {
 
     static constexpr int byte_mask = (1 << CHAR_BIT) - 1;
 
-    //TODO: mod by 1 << CHAR_BIT
-    char least_significant_byte(std::string value, int base) {
-      char ret = 0;
-      int counter = 0;
-      int whichChar = value.length()-1;
-      while(counter < CHAR_BIT) {
-	int digit = std::stoi(value.substr(whichChar, 1), NULL, base);
-	counter++;
+    std::string convert_to_base(int value, int base) {
+      std::string ret;
+      int cpy = value;
+      while(cpy > 0) {
+	std::string curr_digit(1, uppercase_digits[cpy%base]);
+	ret.insert(0, curr_digit);
+	cpy /= base;
       }
       return ret;
     }
+
+    struct div_by_byte_data {
+      int base;
+      std::string quotient;
+      char remainder;
+      div_by_byte_data(int b, std::string q, char r) {
+	base = b;
+	quotient = q;
+	remainder = r;
+      }
+    };
     
     //TODO: long division by 1 << CHAR_BIT
-    std::string divide_by_byte(std::string value, int base) {
+    //the value being divided should always be positive
+    div_by_byte_data divide_by_byte(std::string value, int base) {
+      assert(false);
       std::string ret;
-      
-      return ret;
+      std::string curr_val;
+      char rem;
+      int byte_val = 1 << CHAR_BIT;
+      for(int i = 0; i < value.length(); i++) {
+	curr_val.push_back(value[i]);
+	int curr_int_val = std::stoi(curr_val, NULL, base);
+	if(curr_int_val / byte_val > 0) {
+	  int curr_quot = curr_int_val / byte_val;
+	  int curr_rem = curr_int_val % byte_val;
+	  rem = (char)curr_rem;
+	  curr_val = convert_to_base(curr_rem, base);
+	  ret.push_back(convert_to_base(curr_quot, base));
+	}
+      }
+      div_by_byte_data dbbd(base, ret, rem);
+      return dbbd;
     }
 
     void parse(std::string value, int base) {
-      std::string remaining(value);
-      int counter = 0;
-      while(remaining.length() > 0) {
-	bitmap[counter] = least_significant_byte(value, base);
-	remaining = divide_by_byte(remaining, base);
+      int sign = 0;
+      if((value[0] == '+') || (value[0] == '-')) sign = 1;
+      std::string remaining = value.substr(sign);
+      int counter = 1;
+      while(remaining.length() > 0 && remaining != "0") {
+        div_by_byte_data dbbd = divide_by_byte(remaining, base);
+	bitmap[N-counter] = dbbd.remainder;
+	remaining = dbbd.quotient;
 	counter++;
+      }
+      if(sign && (value[0] == '-')) {
+	*this = -(*this);
       }
     }
     
   public:
     //store the data
-    char bitmap[N/CHAR_BIT];
+    unsigned char bitmap[N/CHAR_BIT];
 
     //tells you if there's overflow
     template<int M>
@@ -80,14 +121,13 @@ namespace alexstrong {
     };
     
     //default constructor - sets everything to 0
-    big_int() noexcept {
+    big_int() {
       for(int i = 0; i < N/CHAR_BIT; i++) {
 	bitmap[i] = 0;
       }
     }
 
     //int constructor
-    std::enable_if<!IntUtils<N/CHAR_BIT, sizeof(int)>::less>
     big_int(int value) {
       for(int i = 0; i < N; i++) {
         if(i < sizeof(int)) {
@@ -148,6 +188,9 @@ namespace alexstrong {
       for(int i = 0; i < IntUtils<M, N>::min; i++) {
 	bitmap[i] = other.bitmap[i];
       }
+      for(int i = IntUtils<M, N>::min; i < N; i++) {
+	bitmap[i] = 0;
+      }
       return *this;
     }
 
@@ -156,8 +199,6 @@ namespace alexstrong {
       big_int<N> copy(other);
       return copy;
     }
-
-    //define other operators here: +, -, *, /, |, &, ||, &&, ==, =, etc
 
     //bitwise not
     big_int<N> operator~() noexcept {
@@ -177,35 +218,32 @@ namespace alexstrong {
 
     //addition of two big_ints, not necessarily of the same size
     template<int M>
-    big_int<IntUtils<M, N>::max> operator+(const big_int<M> &other) {
-      big_int<IntUtils<M, N>::max> ret;
-      big_int<IntUtils<M, N>::min> *smaller;
-      if(M >= N) {
-	ret = *this;
-	smaller = (big_int<IntUtils<M, N>::min> *)(&other);
+    big_int<IntUtils<M, N>::sum_bits> operator+(const big_int<M> &other) {
+      big_int<IntUtils<M, N>::sum_bits> ret;
+      int carry = 0;
+      for(int i = 1; i <= IntUtils<M, N>::min; i++) {
+	ret.bitmap[IntUtils<M, N>::sum_bits - i] = bitmap[N-i] + other.bitmap[M-i] + carry;
+	carry = (ret.bitmap[IntUtils<M, N>::sum_bits - i] < bitmap[N - i]) || (ret.bitmap[IntUtils<M, N>::sum_bits - i] < other.bitmap[M - i]);
       }
-      else {
-	ret = other;
-	smaller = (big_int<IntUtils<M, N>::min> *)this;
+      for(int index = IntUtils<M, N>::min + 1; index <= IntUtils<M, N>::max; index++) {
+	if(M>N) {
+	  ret.bitmap[M-index] = carry + other.bitmap[M-index];
+	  carry = (ret.bitmap[M-index] < other.bitmap[M-index]);
+	}
+	else { //M<N because this loop won't execute if M==N
+	  ret.bitmap[N-index] = carry + bitmap[N-index];
+	  carry = (ret.bitmap[M-index] < bitmap[N-index]);
+	}
       }
-      char carry = 0;
-      for(int i = 0; i < IntUtils<M, N>::min/CHAR_BIT; i++) {
-	unsigned char sum = (unsigned char) ret.bitmap[i] + smaller->bitmap[i] + carry;
-	carry = (sum < ret.bitmap[i]) || (sum < smaller->bitmap[i]);
-	ret.bitmap[i] = sum;
-      }
-      int index = IntUtils<M, N>::min/CHAR_BIT;
-      while(carry && (index < IntUtils<M, N>::max/CHAR_BIT)) {
-	unsigned char sum = (unsigned char) ret.bitmap[index] + smaller->bitmap[index] + carry;
-	carry = (sum < ret.bitmap[index]) || (sum < smaller->bitmap[index]);
-	ret.bitmap[index] = sum;
-	index++;
-      }
-      if(carry) {
-	throw overflow_exception<M>(*this, other);
-      }
+      if(carry > 0) ret.bitmap[0]++;
       return ret;
     }
+
+    template<int M>
+    big_int<N> operator+=(const big_int<M> &other) {
+      *this = *this + other;
+    }
+    
   };
 }
 

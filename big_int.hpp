@@ -8,8 +8,13 @@
 #define STRINGIFY(x) STRINGIFY_HELPER(x)
 #define STRINGIFY_HELPER(x) #x
 
+#define DEBUG 1
+
 namespace alexstrong {
 
+  static constexpr char uppercase_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  static constexpr char lowercase_digits[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
+  
   template<int A, int B>
   struct IntUtils {
     static constexpr bool less = A<B;
@@ -21,19 +26,10 @@ namespace alexstrong {
     static constexpr int sum_bits = max+CHAR_BIT;
   };
 
-  class int_t {
-  protected:
-    static constexpr char uppercase_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    static constexpr char lowercase_digits[37] = "0123456789abcdefghijklmnopqrstuvwxyz";
-  };
-
   template<int N>
-  class big_int : int_t {
+  class big_int {
     static_assert(N % CHAR_BIT == 0, "Invalid number of bits; " STRINGIFY(N) " is not a multiple of " STRINGIFY(CHAR_BIT));
-    static_assert(N>0, "Cannot have a 0-bit number. That makes no sense!");
-
-    char int_t::uppercase_digits[37];
-    char int_t::lowercase_digits[37];
+    static_assert(N>0, "Number of bits must be positive.");
     
     int bits_needed(long long num) {
       int ret = 0;
@@ -43,6 +39,24 @@ namespace alexstrong {
       }
       if(ret == 0) return CHAR_BIT;
       return ret*CHAR_BIT;
+    }
+
+    template<int M>
+    struct division_data {
+      big_int<N> quotient;
+      big_int<M> remainder;
+      division_data() : quotient(0), remainder(0) {
+      }
+    };
+
+    template<int M>
+    division_data<M> divide(const big_int<M> &other) {
+      division_data ret;
+      big_int<N> abs_this(this->abs());
+      big_int<M> abs_other(other.abs());
+      bool neg = sign() ^ other.sign();
+      
+      return ret;
     }
 
     static constexpr int byte_mask = (1 << CHAR_BIT) - 1;
@@ -74,7 +88,7 @@ namespace alexstrong {
     
     //TODO: long division by 1 << CHAR_BIT
     //the value being divided should always be positive
-    div_by_byte_data divide_by_byte(const std::string &value, int base) {
+    div_by_byte_data divide_by_byte(const std::string &value, const int &base) {
       std::string ret = "";
       std::string curr_val = "";
       char rem = 0;
@@ -87,19 +101,41 @@ namespace alexstrong {
 	  int curr_rem = curr_int_val % byte_val;
 	  rem = (char)curr_rem;
 	  curr_val = convert_to_base(curr_rem, base);
-	  ret.insert(ret.length(), convert_to_base(curr_quot, base));
+	  std::string quot_str = convert_to_base(curr_quot, base);
+	  ret.insert(ret.length(), quot_str);
 	}
 	else {
 	  rem = (char)(curr_int_val % byte_val);
+	  ret.push_back('0');
 	}
+      }
+      int first_nonzero = 0;
+      while(first_nonzero < (int)ret.length() && ret.at(first_nonzero) == '0') first_nonzero++;
+      if(first_nonzero >= (int)(ret.length())) {
+	ret = "";
+      }
+      else {
+	ret = ret.substr(first_nonzero);
       }
       div_by_byte_data dbbd(base, ret, rem);
       return dbbd;
     }
 
     void parse(const std::string &value, int base) {
+      if(value.length() == 0) {
+	for(int i = 0; i < N/CHAR_BIT; i++) {
+	  bitmap[i] = 0;
+	}
+	return;
+      }
       int is_sign = 0;
       if((value[0] == '+') || (value[0] == '-')) is_sign = 1;
+      if((int)value.length() == is_sign) {
+	for(int i = 0; i < N/CHAR_BIT; i++) {
+	  bitmap[i] = 0;
+	}
+	return;
+      }
       std::string remaining = value.substr(is_sign);
       int counter = 1;
       div_by_byte_data dbbd;
@@ -113,10 +149,26 @@ namespace alexstrong {
 	*this = -(*this);
       }
     }
+
+    //get the most significant byte that is not equal to 0
+    //return -1 if the number is equal to 0
+    int msb() {
+      for(int i = 0; i < N/CHAR_BIT; i++) {
+	if(bitmap[N/CHAR_BIT] != 0) return i;
+      }
+      return -1;
+    }
     
-  public:
     //store the data
     unsigned char bitmap[N/CHAR_BIT];
+    
+  public:
+    template<int M>
+    friend class alexstrong::big_int;
+    
+    //static stuff, stores info about the size
+    static constexpr int num_bits = N;
+    static constexpr int num_bytes = N/CHAR_BIT;
     
     //default constructor - sets everything to 0
     big_int() {
@@ -127,12 +179,12 @@ namespace alexstrong {
 
     //int constructor
     big_int(int value) {
-      for(int i = 0; i < N; i++) {
+      for(int i = 0; i < N/CHAR_BIT; i++) {
         if(i < (int)sizeof(int)) {
-	  bitmap[i] = ((byte_mask << (i*CHAR_BIT)) & value) >> (i*CHAR_BIT);
+	  bitmap[N/CHAR_BIT - 1 - i] = ((byte_mask << (i*CHAR_BIT)) & value) >> (i*CHAR_BIT);
 	}
 	else {
-	  bitmap[i] = 0;
+	  bitmap[N/CHAR_BIT - 1 - i] = 0;
 	}
       }
     }
@@ -149,7 +201,10 @@ namespace alexstrong {
 
     //copy constructor
     big_int(const big_int<N> &other) noexcept {
+      //if(DEBUG) std::cerr << "other's int value is " << other.to_int() << std::endl;
+      if(DEBUG) std::cerr << "There are " << N/CHAR_BIT << " bytes in this number." << std::endl;
       for(int i = 0; i < N/CHAR_BIT; i++) {
+	if(DEBUG) std::cerr << "\tcopy constructor loop: i = " << i << std::endl;
 	bitmap[i] = other.bitmap[i];
       }
     }
@@ -157,17 +212,21 @@ namespace alexstrong {
     //beware of using this; could easily use information!
     template<int M>
     big_int(const big_int<M> &other) noexcept {
+      if(DEBUG) std::cerr << "Copying a " << M << "-bit number into a " << N << "-bit number." << std::endl;
       for(int i = 1; i <= IntUtils<M, N>::min/CHAR_BIT; i++) {
+	if(DEBUG) std::cerr << "\tsetting index " << N/CHAR_BIT-i << std::endl;
 	bitmap[N/CHAR_BIT-i] = other.bitmap[M/CHAR_BIT-i];
+      }
+      if(DEBUG) std::cerr << "\tcopied all the bits" << std::endl;
+      for(int i = IntUtils<M, N>::min/CHAR_BIT+1; i <= N/CHAR_BIT; i++) {
+	if(DEBUG) std::cerr << "\tsetting index " << N/CHAR_BIT-i << std::endl;
+	bitmap[N/CHAR_BIT-i] = (!(other.sign())) * byte_mask;
       }
       //ensure the sign of this number is the same as the other one
       if(N<M) {
 	if(other.sign() != sign()) {
-	  bitmap[0] ^= 1 << (CHAR_BIT-1);
+	  bitmap[0] ^= (1 << (CHAR_BIT-1));
 	}
-      }
-      for(int i = IntUtils<M, N>::min+1; i <= N; i++) {
-	bitmap[N/CHAR_BIT-i] = (!(other.sign())) * byte_mask;
       }
     }
 
@@ -184,11 +243,6 @@ namespace alexstrong {
       //do nothing, no pointers to free/delete
     //}
 
-    //simple utility to get the number of bits
-    constexpr int num_bits() noexcept {
-      return N;
-    }
-
     //copy assignment
     big_int &operator=(const big_int &other) noexcept {
       for(int i = 0; i < N/CHAR_BIT; i++) {
@@ -200,8 +254,8 @@ namespace alexstrong {
     //beware of using this; could easily lose information!
     template<int M>
     big_int<N> &operator=(const big_int<M> &other) noexcept {
-      for(int i = 1; i <= IntUtils<M, N>::min; i++) {
-	bitmap[N-i] = other.bitmap[M-i];
+      for(int i = 1; i <= IntUtils<M, N>::min/CHAR_BIT; i++) {
+	bitmap[N/CHAR_BIT-i] = other.bitmap[M/CHAR_BIT-i];
       }
       //ensure the sign of this number is the same as the other one
       if(N<M) {
@@ -226,17 +280,20 @@ namespace alexstrong {
 
     //bitwise not
     big_int<N> operator~() const noexcept {
-      big_int<N> ret(*this);
+      //if(DEBUG) std::cerr << to_int();
+      big_int<N> ret;
       for(int i = 0; i < N/CHAR_BIT; i++) {
-	ret.bitmap[i] = ~(ret.bitmap[i]);
+	char notted = ~(bitmap[i]);
+	ret.bitmap[i] = notted;
       }
       return ret;
     }
     
     //negation of big_int
     big_int<N> operator-() const noexcept {
-      big_int<N> ret = ~(*this);
-      ret += big_int<N>(1);
+      big_int<N> ret(~(*this));
+      big_int<N> ONE(1);
+      ret += ONE;
       return ret;
     }
 
@@ -250,22 +307,23 @@ namespace alexstrong {
 
     //beware of overflow when using this! but if you allocate enough bits, you'll probably be fine.
     template<int M>
-    big_int<N> operator+=(const big_int<M> &other) noexcept {
-      int carry = 0;
-      for(int i = 1; i <= IntUtils<M, N>::min/CHAR_BIT; i++) {
-        unsigned char new_char = bitmap[N/CHAR_BIT-i] + other.bitmap[M/CHAR_BIT-i] + (unsigned char)carry;
-	carry = (new_char < bitmap[N/CHAR_BIT - i]) || (new_char < other.bitmap[M/CHAR_BIT - i]);
-	bitmap[N/CHAR_BIT - i] = new_char;
-      }
-      for(int index = (IntUtils<M, N>::min)/CHAR_BIT + 1; index <= N/CHAR_BIT; index++) {
-        unsigned char new_char = (unsigned char)carry + bitmap[N/CHAR_BIT-index];
-	carry = (new_char < bitmap[N/CHAR_BIT-index]);
-	bitmap[N/CHAR_BIT - index] = new_char;
-      }
-      if(carry > 0) {
-	bitmap[0]++;
+    big_int<N> &operator+=(const big_int<M> &other) noexcept {
+      //create a copy of the other one that's the same size as *this
+      //so two's-complement arithmetic can actually work.
+      big_int<N> copy(other);
+      bool carry = 0;
+      for(int i = 1; i <= N/CHAR_BIT; i++) {
+	int index = N/CHAR_BIT-i;
+	unsigned char sum = (unsigned char)carry + bitmap[index] + copy.bitmap[index];
+	carry = (sum < bitmap[index]) || (sum < copy.bitmap[index]);
+	bitmap[index] = sum;
       }
       return *this;
+    }
+
+    big_int<N> &operator+=(const int &a) {
+      big_int<sizeof(int)*CHAR_BIT> a_as_big_int(a);
+      return *this += a_as_big_int;
     }
     
     //adding an int to a big_int
@@ -281,14 +339,37 @@ namespace alexstrong {
     //subtraction of two big_ints, not necessarily of the same size
     template<int M>
     big_int<IntUtils<M, N>::sum_bits> operator-(const big_int<M> &other) const noexcept {
-      return *this + (-other);
+      big_int<IntUtils<M, N>::sum_bits> diff(*this);
+      diff -= other;
+      return diff;
     }
 
     template<int M>
     big_int<N> &operator-=(const big_int<M> &other) noexcept {
-      //utilize the templated operator=
-      *this = *this - other;
+      big_int<M> neg(-other);
+      assert(neg == -other);
+      assert(-neg == other);
+      *this += neg;
       return *this;
+    }
+
+    big_int<N> &operator-=(const int &other) noexcept {
+      big_int<CHAR_BIT * sizeof(int)> neg(-other);
+      *this += neg;
+      return *this;
+    }
+
+    //subtracting int/big_int
+    friend big_int<IntUtils<CHAR_BIT*sizeof(int), N>::sum_bits> operator-(const big_int<N> &a, const int &b) noexcept {
+      big_int<IntUtils<CHAR_BIT*sizeof(int), N>::sum_bits> ret(a);
+      ret -= b;
+      return ret;
+    }
+
+    friend big_int<IntUtils<CHAR_BIT*sizeof(int), N>::sum_bits> operator-(const int &a, const big_int<N> &b) noexcept {
+      big_int<IntUtils<CHAR_BIT*sizeof(int), N>::sum_bits> ret(b);
+      ret -= a;
+      return ret;
     }
 
     //returns true if positive, false if negative
@@ -297,70 +378,72 @@ namespace alexstrong {
       return !(bitmap[0] & mask);
     }
 
-    template<int M>
-    bool operator<(const big_int<M> &other) noexcept {
-      big_int<IntUtils<M, N>::sum_bits> diff = other - *this;
-      big_int<IntUtils<M, N>::sum_bits> diff2 = *this - other;
-      if(diff == diff2) return false; //this means they're equal
-      return diff.sign();
+    big_int<N> abs() const noexcept {
+      if(sign()) return *this;
+      return -(*this);
     }
 
     template<int M>
-    bool operator==(const big_int<M> &other) noexcept {
-      std::cout << "comparing a big_int<" << N << "> with a big_int<" << M << ">" <<std::endl;
-      int thisIndex = 0, otherIndex = 0;
-      std::cout << "thisIndex: " << thisIndex << std::endl;
-      std::cout << "otherIndex: " << otherIndex << std::endl;
+    bool operator<(const big_int<M> &other) const noexcept {
+      if(sign() && !(other.sign())) return false;
+      if(other.sign() && !sign()) return true;
+      //now we know they both have the same sign
+      big_int<N> abs_this = this->abs();
+      big_int<M> abs_other = other.abs();
+      bool ret = false;
+      for(int i = 1; i <= IntUtils<M, N>::min/CHAR_BIT; i++) {
+	if(abs_this.bitmap[N/CHAR_BIT-i] < abs_other.bitmap[M/CHAR_BIT-i]) {
+	  ret = sign();
+	}
+	else if(abs_this.bitmap[N/CHAR_BIT-i] > abs_other.bitmap[M/CHAR_BIT-i]) {
+	  ret = !sign();
+	}
+      }
       if(M>N) {
-	for(otherIndex = 0; otherIndex < (M-N)/CHAR_BIT; otherIndex++) {
-	  if(other.bitmap[otherIndex]) return false;
+	for(int i = N/CHAR_BIT + 1; i <= M/CHAR_BIT; i++) {
+	  if(abs_other.bitmap[M/CHAR_BIT-i] > 0) {
+	    return other.sign();
+	  }
 	}
       }
       else if(N>M) {
-	for(thisIndex = 0; thisIndex < (N-M)/CHAR_BIT; thisIndex++) {
-	  if(this->bitmap[thisIndex]) return false;
+	for(int i = M/CHAR_BIT + 1; i <= N/CHAR_BIT; i++) {
+	  if(abs_this.bitmap[N/CHAR_BIT-i] > 0) {
+	    return !sign();
+	  }
 	}
       }
-      std::cout << "thisIndex: " << thisIndex << std::endl;
-      std::cout << "otherIndex: " << otherIndex << std::endl;
-      for(; thisIndex < N/CHAR_BIT && otherIndex < M/CHAR_BIT; thisIndex++, otherIndex++) {
-	std::cout << "thisIndex: " << thisIndex << std::endl;
-	std::cout << "otherIndex: " << otherIndex << std::endl;
-	char thisByte = bitmap[thisIndex];
-	char otherByte = other.bitmap[otherIndex];
-	std::cout << "Comparing equality of " << (int)thisByte << " and " << (int)otherByte << std::endl;
-	if(thisByte != otherByte) {
-	  std::cout << "returning false" << std::endl;
-	  return false;
-	}
-      }
-      std::cout << "returning true" << std::endl;
-      return true;
+      return ret;
     }
 
     template<int M>
-    bool operator!=(const big_int<M> &other) noexcept {
+    bool operator==(const big_int<M> &other) const noexcept {
+      return !((*this < other) || (other < *this));
+    }
+
+    template<int M>
+    bool operator!=(const big_int<M> &other) const noexcept {
       return !(*this == other);
     }
 
     template<int M>
-    bool operator>(const big_int<M> &other) noexcept {
+    bool operator>(const big_int<M> &other) const noexcept {
       return other < *this;
     }
 
     template<int M>
-    bool operator<=(const big_int<M> &other) noexcept {
+    bool operator<=(const big_int<M> &other) const noexcept {
       return !(*this > other);
     }
 
     template<int M>
-    bool operator>=(const big_int<M> &other) noexcept {
+    bool operator>=(const big_int<M> &other) const noexcept {
       return !(*this < other);
     }
 
     //division operator
     template<int M>
-    big_int<N> operator/(const big_int<M> &other) noexcept {
+    big_int<N> operator/(const big_int<M> &other) const noexcept {
       big_int<N> mod(*this);
       big_int<M> limit(other);
       big_int<N> ret; //equals 0
@@ -369,9 +452,10 @@ namespace alexstrong {
       if(!(other.sign())) {
 	limit = -limit;
       }
-      if(!(mod.sign())) {
+      if(!(this->sign())) {
 	mod = -mod;
       }
+      if(DEBUG) std::cerr << "Is mod greater than or equal to limit? " << (mod>=limit) << std::endl;
       while(mod >= limit) {
 	mod -= limit;
 	ret += ONE;
@@ -383,11 +467,11 @@ namespace alexstrong {
     }
 
     template<int M>
-    big_int<IntUtils<M, N>::min> operator%(const big_int<M> &other) noexcept {
+    big_int<IntUtils<M, N>::min> operator%(const big_int<M> &other) const noexcept {
       big_int<N> mod(*this);
       big_int<M> limit(other);
       big_int<N> ret; //equals 0
-      big_int<N> ONE("1");
+      big_int<N> ONE(1);
       //ensure both numbers are positive
       if(!(other.sign())) {
 	limit = -limit;
@@ -405,36 +489,45 @@ namespace alexstrong {
       return big_int<IntUtils<M, N>::min>(mod);
     }
 
-    big_int<N> operator/(const int &other) noexcept {
+    big_int<N> operator/(const int &other) const noexcept {
       big_int<CHAR_BIT * sizeof(int)> other_as_big_int(other);
       return *this / other_as_big_int;
     }
 
-    int to_int() {
+    int to_int() const {
       int ret = 0;
-      for(int i = 0; i < (int)sizeof(int) && i < N; i++) {
-	ret += (int)bitmap[N-i-1] << (i*CHAR_BIT);
+      big_int<N> copy((this->sign())?(*this):(-(*this)));
+      for(int i = 0; (i < (int)sizeof(int)) && (i < N/CHAR_BIT); i++) {
+	if(DEBUG) std::cerr << N << "/" << CHAR_BIT << " is " << N/CHAR_BIT  << std::endl;
+	if(DEBUG) std::cerr << "i is " << i << std::endl;
+	if(DEBUG) std::cerr << "ret: " << ret << " --> ";
+	int this_byte = (int)(copy.bitmap[N/CHAR_BIT - i - 1]);
+	ret += (this_byte << (i*CHAR_BIT));
+	if(DEBUG) std::cerr << ret << std::endl;
+      }
+      if(!sign()) {
+	ret = -ret;
       }
       return ret;
     }
 
-    int operator%(const int &other) {
+    int operator%(const int &other) const {
       big_int<sizeof(int)*CHAR_BIT> other_as_big_int(other);
       return (*this % other_as_big_int).to_int();
     }
 
-    long to_long() {
+    long to_long() const {
       long ret = 0;
-      for(int i = 0; i < sizeof(long) && i < N; i++) {
-	ret += (long)bitmap[N-i-1] << (i*CHAR_BIT);
+      for(int i = 0; i < sizeof(long) && i < N/CHAR_BIT; i++) {
+	ret += (long)bitmap[N/CHAR_BIT-i-1] << (i*CHAR_BIT);
       }
       return ret;
     }
 
-    long long to_long_long() {
+    long long to_long_long() const {
       long long ret = 0;
-      for(int i = 0; i < sizeof(long long) && i < N; i++) {
-	ret += (long long)bitmap[N-i-1] << (i*CHAR_BIT);
+      for(int i = 0; i < sizeof(long long) && i < N/CHAR_BIT; i++) {
+	ret += (long long)bitmap[N/CHAR_BIT-i-1] << (i*CHAR_BIT);
       }
       return ret;
     }
@@ -446,11 +539,18 @@ namespace alexstrong {
       const big_int<N> ZERO;
       big_int<N> copy(*this);
       if(!sign()) copy = -copy;
+      if(DEBUG) std::cerr << "copy, as int, is " << copy.to_int() << std::endl;
       while(copy != ZERO) {
 	big_int<N> quotient = copy/base;
+	if(DEBUG) std::cerr << "quotient, as int, is " << quotient.to_int() << std::endl;
         int remainder = copy % base;
-	ret.insert(ret.begin(), uppercase_digits[remainder]);
+	if(DEBUG) std::cerr << "remainder is " << remainder << std::endl;
+	char next_digit = uppercase_digits[remainder];
+	if(DEBUG) std::cerr << "next digit is " << next_digit << std::endl;
+	ret.insert(ret.begin(), next_digit);
+	if(DEBUG) std::cerr << "ret is " << ret << std::endl;
 	copy = quotient;
+	if(DEBUG) std::cerr << "copy, as int, is " << copy.to_int() << std::endl;
       }
       if(!sign()) ret.insert(0, "-");
       return ret;
@@ -463,22 +563,113 @@ namespace alexstrong {
     }
 
     //prefix operator++
+    big_int<N> &operator++() {
+      *this += 1;
+      return *this;
+    }
 
     //postfix operator++
+    big_int<N> operator++(int) {
+      big_int<N> copy(*this);
+      ++(*this);
+      return copy;
+    }
 
     //prefix operator--
+    big_int<N> &operator--() {
+      *this -= 1;
+      return *this;
+    }
 
     //postfix operator--
+    big_int<N> operator--(int) {
+      big_int<N> copy(*this);
+      ++(*this);
+      return copy;
+    }
 
     //multiplication
+    //there is overflow 
+    template<int M>
+    big_int<N> &operator*=(const big_int<M> &other) {
+      big_int<M> zero;
+      if(other == zero) {
+	for(int i = 0; i < N/CHAR_BIT; i++) {
+	  bitmap[i] = 0;
+	}
+      }
+      else {
+	big_int<M> abs_other(other.abs());
+	if(!(other.sign())) {
+	  *this = -(*this);
+	}
+	for(big_int<M> i(1); i < abs_other; ++i) {
+	  *this += *this;
+	}
+      }
+      return *this;
+    }
 
-    //division
+    template<int M>
+    big_int<M+N> operator*(const big_int<M> &other) {
+      big_int<M+N> ret;
+      ret *= other;
+      return ret;
+    }
 
     //bitwise and
+    template<int M>
+    big_int<N> &operator&=(const big_int<M> &other) {
+      for(int i = 1; i <= IntUtils<M, N>::min/CHAR_BIT; i++) {
+	bitmap[N/CHAR_BIT-i] &= other.bitmap[M/CHAR_BIT-i];
+      }
+      for(int i = IntUtils<M, N>::min/CHAR_BIT + 1; i <= N/CHAR_BIT; i++) {
+	bitmap[N/CHAR_BIT-i] = 0;
+      }
+      return *this;
+    }
+
+    template<int M>
+    big_int<IntUtils<M, N>::max> operator&(const big_int<M> &other) {
+      big_int<IntUtils<N, N>::max> ret(*this);
+      ret &= other;
+      return ret;
+    }
 
     //bitwise or
+    template<int M>
+    big_int<N> &operator|=(const big_int<M> &other) {
+      for(int i = 1; i <= IntUtils<M, N>::min/CHAR_BIT; i++) {
+	bitmap[N/CHAR_BIT-i] |= other.bitmap[M/CHAR_BIT-i];
+      }
+      //for higher bytes, or it with 0, or do nothing.
+      //more efficient to do nothing, so just return.
+      return *this;
+    }
+
+    template<int M>
+    big_int<IntUtils<M, N>::max> operator|(const big_int<M> &other) {
+      big_int<IntUtils<M, N>::max> ret(*this);
+      ret |= other;
+      return ret;
+    }
 
     //bitwise xor
+    template<int M>
+    big_int<N> &operator^=(const big_int<M> &other) {
+      for(int i = 1; i <= IntUtils<M, N>::min/CHAR_BIT; i++) {
+	bitmap[N/CHAR_BIT-i] ^= other.bitmap[M/CHAR_BIT-i];
+      }
+      //XOR the other bytes with 0, i.e. do nothing
+      return *this;
+    }
+
+    template<int M>
+    big_int<IntUtils<M, N>::max> operator^(const big_int<M> &other) {
+      big_int<IntUtils<M, N>::max> ret(*this);
+      ret ^= other;
+      return ret;
+    }
 
     //logical shift right
 

@@ -659,6 +659,8 @@ namespace alexstrong {
     //there is overflow 
     template<int M>
     big_int<N> &operator*=(const big_int<M> &other) {
+      big_int<N> nzero;
+      if(*this == nzero) return *this;
       big_int<M> zero;
       if(other == zero) {
 	for(int i = 0; i < N/CHAR_BIT; i++) {
@@ -666,13 +668,23 @@ namespace alexstrong {
 	}
       }
       else {
+	//do log-time multiplication by doubling
 	big_int<M> abs_other(other.abs());
 	if(!(other.sign())) {
 	  *this = -(*this);
 	}
-	for(big_int<M> i(1); i < abs_other; ++i) {
+	big_int<M> copy(abs_other);
+	big_int<N> sum; //should be 0
+	while(copy-2 != -copy) {
+	  //if it's odd
+	  if(copy.bitmap[M/CHAR_BIT-1] & 1) {
+	    sum += *this;
+	    copy--;
+	  }
 	  *this += *this;
+	  copy >>= 1;
 	}
+	*this += sum;
       }
       return *this;
     }

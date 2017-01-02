@@ -21,5 +21,11 @@ int main() {
   assert(x == first_int);
   big_int<int_bits> x2(first_b16, 16);
   assert(x1 == x2);
+  std::cout << "Now testing for bigger integers." << std::endl;
+  big_int<int_bits*2> x3(first_b16, 16);
+  std::cout << "constructed" << std::endl;
+  x3 *= x1;
+  std::cout << "multiplication done" << std::endl;
+  std::cout << x3 << std::endl;
   return 0;
 }

@@ -45,21 +45,79 @@ namespace alexstrong {
     struct division_data {
       big_int<N> quotient;
       big_int<M> remainder;
-      division_data() : quotient(0), remainder(0) {
+      bool error;
+      division_data() : quotient(0), remainder(0), error(false) {
       }
     };
 
     template<int M>
-    division_data<M> divide(const big_int<M> &other) {
-      division_data ret;
-      big_int<N> abs_this(this->abs());
-      big_int<M> abs_other(other.abs());
+    division_data<M> divide(const big_int<M> &other) const noexcept {
+      division_data<M> ret;
+      //make sure you don't divide by 0!
+      if(other.sign() && (-other).sign()) {
+	ret.error = true;
+	return ret;
+      }
+      //now that we know other isn't 0, move on.
+      big_int<IntUtils<M, N>::max> abs_this(this->abs());
+      big_int<IntUtils<M, N>::max> abs_other(other.abs());
       bool neg = sign() ^ other.sign();
-      
+      ret.remainder = *this;
+      if(abs_this < abs_other) {
+	//quotient should already be 0, but just in case...
+	ret.quotient = big_int<M>(0);
+	//make sure the remainder is between 0 and abs_other, inclusive
+	while(!ret.remainder.sign()) {
+	  ret.remainder += abs_other;
+	  ret.quotient--;
+	}
+      }
+      else {
+	int msb_this = abs_this.msb();
+	int msb_other = abs_other.msb();
+	int diff = msb_this - msb_other;
+	//if the difference is 0 or 1, we can just do it without too much fuss
+	if(diff <= 1) {
+	  while(ret.remainder >= abs_other) {
+	    ret.remainder -= abs_other;
+	    ret.quotient++;
+	  }
+	  while(!ret.remainder.sign()) {
+	    ret.remainder += abs_other;
+	    ret.quotient--;
+	  }
+	}
+	//otherwise, we need to do some shifting
+	else {
+	  //we know N > M here
+	  big_int<N> shifted = big_int<N>(abs_other) << ((diff-1)*CHAR_BIT);
+	  big_int<N> quot(1);
+	  quot <<= ((diff-1)*CHAR_BIT);
+	  ret.remainder = abs_this;
+	  int numOff = 0;
+	  while(ret.remainder >= abs_other) {
+	    while(ret.remainder >= shifted) {
+	      ret.remainder -= shifted;
+	      ret.quotient += quot;
+	    }
+	    while(!ret.remainder.sign()) {
+	      ret.remainder += shifted;
+	      ret.quotient -= quot;
+	    }
+	    numOff++;
+	    shifted = abs_other << ((diff-1-numOff)*CHAR_BIT);
+	    quot >>= CHAR_BIT;
+	  }
+	}
+      }
+      if(neg) {
+	ret.quotient = -(ret.quotient+1);
+	ret.remainder = abs_other - ret.remainder;
+      }
       return ret;
     }
 
-    static constexpr int byte_mask = (1 << CHAR_BIT) - 1;
+    static const int byte_mask = (1 << CHAR_BIT) - 1;
 
     std::string convert_to_base(const int &value, const int &base) {
       std::string ret = "";
@@ -154,7 +212,9 @@ namespace alexstrong {
     //return -1 if the number is equal to 0
     int msb() {
       for(int i = 0; i < N/CHAR_BIT; i++) {
-	if(bitmap[N/CHAR_BIT] != 0) return i;
+	if(bitmap[i] != 0) {
+	  return N/CHAR_BIT-i-1;
+	}
       }
       return -1;
     }
@@ -444,7 +504,7 @@ namespace alexstrong {
     //division operator
     template<int M>
     big_int<N> operator/(const big_int<M> &other) const noexcept {
-      big_int<N> mod(*this);
+      /*big_int<N> mod(*this);
       big_int<M> limit(other);
       big_int<N> ret; //equals 0
       big_int<N> ONE(1);
@@ -463,12 +523,14 @@ namespace alexstrong {
       if(other.sign() ^ sign()) {
 	ret = -ret;
       }
-      return ret;
+      return ret;*/
+      division_data<M> data = divide(other);
+      return data.quotient;
     }
 
     template<int M>
     big_int<IntUtils<M, N>::min> operator%(const big_int<M> &other) const noexcept {
-      big_int<N> mod(*this);
+      /*big_int<N> mod(*this);
       big_int<M> limit(other);
       big_int<N> ret; //equals 0
       big_int<N> ONE(1);
@@ -486,7 +548,10 @@ namespace alexstrong {
       if((other.sign()) ^ (mod.sign())) {
 	ret = -ret;
       }
-      return big_int<IntUtils<M, N>::min>(mod);
+      return big_int<IntUtils<M, N>::min>(mod);*/
+      division_data<M> data = divide(other);
+      big_int<IntUtils<M, N>::min> ret(data.remainder);
+      return ret;
     }
 
     big_int<N> operator/(const int &other) const noexcept {
@@ -535,15 +600,17 @@ namespace alexstrong {
     //get string representation in any base <= 36
     std::string to_base(int base) {
       assert(base <= 36 && base > 1);
+      big_int<sizeof(int)*CHAR_BIT> base_big_int(base);
       std::string ret = "";
       const big_int<N> ZERO;
       big_int<N> copy(*this);
       if(!sign()) copy = -copy;
       if(DEBUG) std::cerr << "copy, as int, is " << copy.to_int() << std::endl;
       while(copy != ZERO) {
-	big_int<N> quotient = copy/base;
+        auto div_data = copy.divide(base_big_int);
+	big_int<N> quotient = div_data.quotient;
 	if(DEBUG) std::cerr << "quotient, as int, is " << quotient.to_int() << std::endl;
-        int remainder = copy % base;
+        int remainder = div_data.remainder.to_int();
 	if(DEBUG) std::cerr << "remainder is " << remainder << std::endl;
 	char next_digit = uppercase_digits[remainder];
 	if(DEBUG) std::cerr << "next digit is " << next_digit << std::endl;
@@ -671,13 +738,100 @@ namespace alexstrong {
       return ret;
     }
 
-    //logical shift right
-
     //arithmetic shift right
+    big_int<N> &operator>>=(const int &other) noexcept {
+      const int quot = other/CHAR_BIT;
+      const int rem = other%CHAR_BIT;
+      const int mask = (1<<rem)-1;
+      //first, shift by the remainder
+      //first do the first byte, then the rest
+      char prev_bits = (bitmap[0] & mask) << (CHAR_BIT-rem);
+      bitmap[0] >>= rem;
+      for(int i = 1; i < N/CHAR_BIT; i++) {
+	char new_prev_bits = (bitmap[i] & mask) << (CHAR_BIT-rem);
+	bitmap[i] >>= rem;
+	bitmap[i] |= prev_bits;
+	prev_bits = new_prev_bits;
+      }
+      //then, move the bytes by the quotient
+      //new_byte should be either 0 or 2^CHAR_BIT-1 depending on the sign
+      unsigned char new_byte = (!sign())*byte_mask;
+      for(int i = N/CHAR_BIT-1; i >= quot; i--) {
+	bitmap[i] = bitmap[i-quot];
+      }
+      for(int i = quot-1; i >= 0; i--) {
+	bitmap[i] = new_byte;
+      }
+      return *this;
+    }
+
+    /*template<int M>
+    big_int<N> &operator>>=(const big_int<M> &other) {
+      big_int<M> copy(other);
+      while(copy > big_int(0)) {
+	int x = copy.to_int();
+	*this >>= x;
+	copy >>= (sizeof(int) * CHAR_BIT);
+      }
+      return *this;
+      }*/
+
+    big_int<N> operator>>(const int &other) const noexcept {
+      big_int<N> ret(*this);
+      ret >>= other;
+      return ret;
+    }
+
+    /*template<int M>
+    big_int<N> operator>>(const big_int<M> &other) {
+      big_int<N> ret(*this);
+      ret >>= other;
+      return ret;
+      }*/
 
     //shift left
+    big_int<N> &operator<<=(const int &other) noexcept {
+      const int quot = other / CHAR_BIT;
+      const int rem = other % CHAR_BIT;
+      const int mask = byte_mask ^ ((1 << (CHAR_BIT-rem))-1);
+      //first go through each byte and move the bits to the left by rem
+      //last byte first
+      //set prev_bits to be the first rem bits of bitmap[N/CHAR_BIT-1]
+      char prev_bits = (bitmap[N/CHAR_BIT-1] & mask) >> rem;
+      //move it over by rem bits
+      bitmap[N/CHAR_BIT-1] <<= rem;
+      //now the other bytes
+      for(int i = N/CHAR_BIT-2; i >= 0; i--) {
+	char new_prev_bits = (bitmap[i] & mask) >> rem;
+	bitmap[i] <<= rem;
+	bitmap[i] |= prev_bits;
+	prev_bits = new_prev_bits;
+      }
+      //now move the bytes
+      for(int i = 0; i < N/CHAR_BIT-quot; i++) {
+	bitmap[i] = bitmap[i+quot];
+      }
+      for(int i = N/CHAR_BIT-quot; i < N/CHAR_BIT; i++) {
+	bitmap[i] = 0;
+      }
+      return *this;
+    }
 
-    
+    /*template<int M>
+    big_int<N> &operator<<=(const big_int<M> &other) {
+      big_int<M> copy(other);
+      while(copy > big_int(0)) {
+	int copy_int = copy.to_int();
+	*this >>= copy_int;
+	copy >>= (sizeof(int)*CHAR_BIT);
+      }
+      }*/
+
+    big_int<N> operator<<(const int &other) const noexcept {
+      big_int<N> ret(*this);
+      ret <<= other;
+      return ret;
+    }
     
   };
 }
